@@ -1,10 +1,24 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'tu-email@ejemplo.com';
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || 'AMPASA CALIDAD <onboarding@resend.dev>';
 const APP_URL = process.env.APP_URL || 'http://localhost:3000';
+
+// Lazy initialization - only create Resend client when the route is actually called.
+// This prevents "Missing API key" errors during `next build` when env vars may not be present.
+let resend: Resend | null = null;
+
+function getResend() {
+  if (!resend) {
+    const key = process.env.RESEND_API_KEY;
+    if (!key) {
+      throw new Error('RESEND_API_KEY is not set in environment variables');
+    }
+    resend = new Resend(key);
+  }
+  return resend;
+}
 
 export async function POST(request: Request) {
   try {
@@ -75,7 +89,9 @@ export async function POST(request: Request) {
     `;
 
     // Send to Admin (this works with Resend test mode)
-    const adminResult = await resend.emails.send({
+    const resendClient = getResend();
+
+    const adminResult = await resendClient.emails.send({
       from: FROM_EMAIL,
       to: [ADMIN_EMAIL],
       subject: 'Nuevo usuario registrado - AMPASA CALIDAD',
@@ -87,7 +103,7 @@ export async function POST(request: Request) {
     // We always also send a copy/preview to ADMIN_EMAIL so you can see what the user would receive.
     let userResult;
     try {
-      userResult = await resend.emails.send({
+      userResult = await resendClient.emails.send({
         from: FROM_EMAIL,
         to: [email],
         subject: 'Tu solicitud de acceso a AMPASA CALIDAD ha sido recibida',
@@ -108,7 +124,7 @@ export async function POST(request: Request) {
         ${userEmailHtml}
       </div>
     `;
-    const adminUserCopy = await resend.emails.send({
+    const adminUserCopy = await resendClient.emails.send({
       from: FROM_EMAIL,
       to: [ADMIN_EMAIL],
       subject: `[Copia para admin] Confirmación de registro para: ${email} - AMPASA CALIDAD`,
