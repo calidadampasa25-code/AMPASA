@@ -33,9 +33,19 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# Google service account key (for Drive API - keep private!)
+service-account-key.json
+service-account-key-*.json
+
 # vercel
 .vercel
 
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+.env.local
+   service-account-key.json
+   node_modules
+   .next
