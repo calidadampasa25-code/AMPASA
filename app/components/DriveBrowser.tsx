@@ -75,6 +75,9 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
   // Undo for delete (trash)
   const [lastDeleted, setLastDeleted] = useState<{file: DriveFile, folderId: string} | null>(null);
 
+  // Per-row action menu (three dots like Google Drive)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
   // View filter for left menu / master list
   const [viewFilter, setViewFilter] = useState<'all' | 'starred' | 'recent'>('all');
 
@@ -221,19 +224,20 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     openMovePicker(); // will use moveBulkIds
   };
 
-  // Debounced search + scope changes trigger server-side fullText search (current folder or global)
-  // Use silent so we don't show full "Cargando..." and hide the list while typing
+  // Debounced search - always global for better findability (like real Google Drive)
+  // Silent to avoid hiding the list
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (search.trim() === '') {
-        fetchFilesForFolder(currentFolderId, true); // silent
+        fetchFilesForFolder(currentFolderId, true);
       } else {
-        fetchFiles(search, searchScope, { silent: true });
+        // Force global scope when searching so it finds files in subfolders (Formatos, etc.)
+        fetchFiles(search, 'global', { silent: true });
       }
-    }, 250);
+    }, 300);
 
     return () => clearTimeout(timeout);
-  }, [search, searchScope, currentFolderId]);
+  }, [search, currentFolderId]);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -996,47 +1000,6 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
         <p className="text-[10px] text-[#666] mt-1">Búsqueda full-text de Google Drive (nombres + contenido). Usa "Actualizar" después de cambios externos.</p>
       </div>
 
-      {/* Bulk actions bar */}
-      {selectedIds.size > 0 && (
-        <div className="mx-4 mt-2 mb-1 flex items-center gap-3 bg-[#1a1a1a] border border-[#2e2e2e] px-4 py-2 rounded-lg text-sm">
-          <span>{selectedIds.size} seleccionados</span>
-          <button onClick={bulkDelete} className="text-red-400 hover:underline">Eliminar</button>
-          <button onClick={bulkMove} className="text-[#3ecf8e] hover:underline">Mover</button>
-          <button onClick={clearSelection} className="ml-auto text-[#a1a1aa]">Cancelar</button>
-        </div>
-      )}
-
-      {/* Search bar (Supabase style) */}
-      <div className="px-4 pt-2 pb-2">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            placeholder={searchScope === 'current' ? "Buscar en la carpeta actual..." : "Buscar en todo el Drive (full-text)..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input-supabase flex-1"
-          />
-          <div className="flex gap-1 bg-[#111] rounded-md p-0.5 self-start border border-[#2e2e2e]">
-            <button
-              onClick={() => setSearchScope('current')}
-              className={`px-3 py-1.5 text-xs rounded font-medium transition ${searchScope === 'current' ? 'bg-[#1f1f1f] text-[#3ecf8e]' : 'text-[#a1a1aa] hover:text-[#f1f1f1]'}`}
-            >
-              Carpeta actual
-            </button>
-            <button
-              onClick={() => setSearchScope('global')}
-              className={`px-3 py-1.5 text-xs rounded font-medium transition ${searchScope === 'global' ? 'bg-[#1f1f1f] text-[#3ecf8e]' : 'text-[#a1a1aa] hover:text-[#f1f1f1]'}`}
-            >
-              Todo el Drive
-            </button>
-          </div>
-        </div>
-        {(search || isGlobalResults) && (
-          <button onClick={clearSearch} className="mt-1 text-xs text-[#3ecf8e] hover:underline">Limpiar búsqueda y volver</button>
-        )}
-        <p className="text-[10px] text-[#666] mt-1">Búsqueda full-text de Google Drive. Usa "Actualizar" después de cambios externos.</p>
-      </div>
-
       {/* Main workspace: left Supabase sidebar + content */}
       <div className="flex flex-1 min-h-0">
         {/* LEFT SIDEBAR - now using clean Supabase component (green active, thin borders) */}
@@ -1152,29 +1115,44 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
                             {starredIds.has(file.id) ? '★' : '☆'}
                           </button>
                           <img src={file.iconLink} alt="" className="w-5 h-5" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                          <span className="font-medium text-[#f1f1f1]">{file.name}</span>
+                          <span className="font-medium text-[#f1f1f1] select-text cursor-text">{file.name}</span>
                         </td>
                         <td className="text-sm text-[#a1a1aa]">{formatDate(file.modifiedTime)}</td>
                         <td className="text-sm text-[#a1a1aa]">{formatSize(file.size)}</td>
                         <td>
-                          <div className="flex flex-wrap gap-1.5 items-center text-xs">
-                            {!isFolder(file) && (
-                              <>
-                                <button onClick={(e) => { e.stopPropagation(); handlePreview(file); }} className="px-2 py-0.5 rounded bg-blue-600 text-white hover:bg-blue-700">Previsualizar</button>
-                                <button onClick={(e) => { e.stopPropagation(); handlePrint(file); }} className="px-2 py-0.5 rounded bg-green-600 text-white hover:bg-green-700">Imprimir</button>
-                                <button onClick={(e) => { e.stopPropagation(); handleDownload(file); }} className="px-2 py-0.5 rounded bg-gray-700 text-white hover:bg-gray-800">Descargar</button>
-                              </>
-                            )}
-                            {isFolder(file) && (
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); navigateIntoFolder(file.id); }} 
-                                className="px-2 py-0.5 rounded bg-[#1f1f1f] text-[#a1a1aa] hover:bg-[#27272a]"
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenMenuId(openMenuId === file.id ? null : file.id);
+                              }}
+                              className="px-2 py-1 text-[#a1a1aa] hover:text-[#f1f1f1] hover:bg-[#1f1f1f] rounded"
+                              title="Más acciones"
+                            >
+                              ⋮
+                            </button>
+
+                            {openMenuId === file.id && (
+                              <div
+                                className="absolute right-0 mt-1 z-50 bg-[#161616] border border-[#2e2e2e] rounded shadow-lg py-1 text-sm min-w-[140px]"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                Abrir
-                              </button>
+                                {!isFolder(file) && (
+                                  <>
+                                    <button onClick={() => { handlePreview(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Previsualizar</button>
+                                    <button onClick={() => { handlePrint(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Imprimir</button>
+                                    <button onClick={() => { handleDownload(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Descargar</button>
+                                  </>
+                                )}
+                                {isFolder(file) && (
+                                  <button onClick={() => { navigateIntoFolder(file.id); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Abrir</button>
+                                )}
+                                <button onClick={() => { startRename(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Renombrar</button>
+                                <button onClick={() => { openShare(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Compartir</button>
+                                <div className="h-px bg-[#2e2e2e] my-1" />
+                                <button onClick={() => { handleDelete(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f] text-red-400">Eliminar</button>
+                              </div>
                             )}
-                            <button onClick={(e) => { e.stopPropagation(); startRename(file); }} className="px-2 py-0.5 rounded bg-[#1f1f1f] text-[#a1a1aa] hover:bg-[#27272a] border border-[#2e2e2e]">Renombrar</button>
-                            <button onClick={(e) => { e.stopPropagation(); openShare(file); }} className="px-2 py-0.5 rounded bg-[#1f1f1f] text-[#a1a1aa] hover:bg-[#27272a] border border-[#2e2e2e]">Compartir</button>
                           </div>
                         </td>
                       </tr>
@@ -1221,7 +1199,7 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
                       <img src={file.iconLink} alt="" className="w-8 h-8 mt-1" onError={(e) => (e.currentTarget.style.display = 'none')} />
                     )}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate text-[#f1f1f1]">{file.name}</div>
+                      <div className="font-medium text-sm truncate text-[#f1f1f1] select-text cursor-text">{file.name}</div>
                       <div className="text-xs text-[#a1a1aa] mt-1">{formatDate(file.modifiedTime)}</div>
                       <div className="text-xs text-[#a1a1aa]">{formatSize(file.size)}</div>
                     </div>
