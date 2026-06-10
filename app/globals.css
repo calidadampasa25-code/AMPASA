@@ -1,8 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Supabase dashboard exact tokens (deep dark, ultra-thin borders, green accent) */
+  --supabase-bg: #0a0a0a;
+  --supabase-panel: #161616;
+  --supabase-card: #1a1a1a;
+  --supabase-border: #2e2e2e;
+  --supabase-green: #3ecf8e;
+  --supabase-foreground: #f1f1f1;
+  --supabase-muted: #a1a1aa;
+  --supabase-hover: #1f1f1f;
+
+  --background: var(--supabase-bg);
+  --foreground: var(--supabase-foreground);
+  --card: var(--supabase-card);
+  --card-border: var(--supabase-border);
+  --accent: var(--supabase-green);
+  --muted: var(--supabase-muted);
 }
 
 @theme inline {
@@ -12,15 +26,179 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* Force clean dark Supabase theme globally - no light leakage */
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--supabase-bg);
+  color: var(--supabase-foreground);
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+}
+
+/* === Supabase dashboard primitives === */
+
+.card {
+  background: var(--supabase-card);
+  border: 1px solid var(--supabase-border);
+  border-radius: 12px;
+}
+
+.btn-primary {
+  background: var(--supabase-green);
+  color: #000;
+  font-weight: 600;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  transition: filter 0.1s ease;
+}
+.btn-primary:hover {
+  filter: brightness(1.08);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th,
+.table td {
+  padding: 0.625rem 0.875rem;
+  text-align: left;
+  border-bottom: 1px solid var(--supabase-border);
+  color: var(--supabase-foreground);
+}
+
+.table th {
+  background: #111111;
+  font-weight: 500;
+  color: var(--supabase-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table tr:hover {
+  background: var(--supabase-hover);
+}
+
+.table tr.selected {
+  background: rgba(62, 207, 142, 0.08);
+}
+
+/* Supabase-style sidebar nav */
+.supabase-sidebar {
+  background: #0f0f0f;
+  border-right: 1px solid var(--supabase-border);
+}
+
+.supabase-nav-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--supabase-muted);
+  text-align: left;
+  border-left: 2px solid transparent;
+  transition: all 0.1s ease;
+}
+
+.supabase-nav-item:hover {
+  color: var(--supabase-foreground);
+  background: #161616;
+}
+
+.supabase-nav-item.active {
+  color: var(--supabase-green);
+  background: #1a1a1a;
+  border-left-color: var(--supabase-green);
+  font-weight: 500;
+}
+
+/* Workspace / full project layout helpers (like Supabase dashboard) */
+.workspace {
+  min-height: 100vh;
+  background: var(--supabase-bg);
+}
+
+.workspace-header {
+  height: 48px;
+  border-bottom: 1px solid var(--supabase-border);
+  background: #0f0f0f;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+  gap: 1rem;
+}
+
+.workspace-main {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+/* High contrast text fixes - never use low-contrast grays on dark */
+.text-high {
+  color: var(--supabase-foreground);
+}
+
+.text-muted {
+  color: var(--supabase-muted);
+}
+
+/* Thin clean inputs and controls */
+.input-supabase {
+  background: #111;
+  border: 1px solid var(--supabase-border);
+  color: var(--supabase-foreground);
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.875rem;
+}
+
+.input-supabase:focus {
+  outline: none;
+  border-color: var(--supabase-green);
+  box-shadow: 0 0 0 1px var(--supabase-green);
+}
+
+/* Drag overlay (GD-like visual) */
+.drag-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(62, 207, 142, 0.06);
+  border: 2px dashed var(--supabase-green);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Profile menu dark Supabase style */
+.profile-menu {
+  background: #161616;
+  border: 1px solid var(--supabase-border);
+  border-radius: 10px;
+  box-shadow: 0 10px 30px -15px rgb(0 0 0 / 0.6);
+}
+
+/* Modal shell */
+.modal {
+  background: #161616;
+  border: 1px solid var(--supabase-border);
+  border-radius: 12px;
+}
+
+/* Green accent for active states, badges, primary actions (Supabase rule) */
+.accent-green {
+  color: var(--supabase-green);
+}
+
+.bg-accent-green {
+  background: var(--supabase-green);
+  color: #000;
 }
