@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleAuth } from 'google-auth-library';
 import { createSupabaseServerClient } from '@/app/lib/supabase-server';
-import path from 'path';
-
-const KEY_FILE_PATH = path.resolve(process.cwd(), 'service-account-key.json');
 
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url);

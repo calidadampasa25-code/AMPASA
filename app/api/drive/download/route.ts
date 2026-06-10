@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleAuth } from 'google-auth-library';
 import { createSupabaseServerClient } from '@/app/lib/supabase-server';
-import path from 'path';
-
-const KEY_FILE_PATH = path.resolve(process.cwd(), 'service-account-key.json');
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -24,10 +21,17 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const auth = new GoogleAuth({
-      keyFile: KEY_FILE_PATH,
-      scopes: ['https://www.googleapis.com/auth/drive'],
-    });
+    const authConfig = process.env.GOOGLE_SERVICE_ACCOUNT_KEY
+      ? {
+          credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY),
+          scopes: ['https://www.googleapis.com/auth/drive'],
+        }
+      : {
+          keyFile: 'service-account-key.json',
+          scopes: ['https://www.googleapis.com/auth/drive'],
+        };
+
+    const auth = new GoogleAuth(authConfig);
 
     const client = await auth.getClient();
     const accessToken = (await client.getAccessToken()).token;
