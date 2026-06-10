@@ -102,8 +102,9 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     return items;
   }, [files, viewFilter, starredIds]);
 
-  const fetchFiles = async (searchTerm?: string, scope?: 'current' | 'global') => {
-    setLoading(true);
+  const fetchFiles = async (searchTerm?: string, scope?: 'current' | 'global', options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+    if (!silent) setLoading(true);
     setError(null);
 
     const cacheKey = `${currentFolderId}:${searchTerm || ''}:${scope || searchScope}`;
@@ -112,7 +113,7 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
       const cached = winCache.data;
       setFiles(cached);
       setFilteredFiles(cached);
-      setLoading(false);
+      if (!silent) setLoading(false);
       setIsGlobalResults(!!searchTerm && (scope || searchScope) === 'global');
       return;
     }
@@ -147,7 +148,7 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     } catch (err: any) {
       setError(err.message || 'Error al cargar documentos de Drive. Verifica que el service account tenga acceso a la carpeta.');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
@@ -221,15 +222,15 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
   };
 
   // Debounced search + scope changes trigger server-side fullText search (current folder or global)
+  // Use silent so we don't show full "Cargando..." and hide the list while typing
   useEffect(() => {
     const timeout = setTimeout(() => {
       if (search.trim() === '') {
-        // Clear search: reload base folder listing (current scope irrelevant)
-        fetchFilesForFolder(currentFolderId);
+        fetchFilesForFolder(currentFolderId, true); // silent
       } else {
-        fetchFiles(search, searchScope);
+        fetchFiles(search, searchScope, { silent: true });
       }
-    }, 250); // small debounce for typing
+    }, 250);
 
     return () => clearTimeout(timeout);
   }, [search, searchScope, currentFolderId]);
@@ -249,13 +250,12 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     return () => document.removeEventListener('click', handleOutside);
   }, [contextMenu]);
 
-  // Auto sync with Drive on tab focus/visibility (fixes stale folders deleted externally)
+  // Auto sync with Drive on tab focus/visibility (fixes stale folders deleted externally) - silent background refresh
   useEffect(() => {
     const handleSync = () => {
       if (document.visibilityState === 'visible') {
-        // @ts-ignore
-        window.__driveListCache = null;
-        fetchFilesForFolder(currentFolderId);
+        // Silent refresh: don't show full loading or clear UI, just update data in background
+        fetchFilesForFolder(currentFolderId, true); // true = silent
       }
     };
     window.addEventListener('focus', handleSync);
@@ -813,7 +813,7 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     }
   };
 
-  if (loading) {
+  if (loading && files.length === 0) {
     return <div className="p-8 text-center">Cargando documentos de Google Drive...</div>;
   }
 

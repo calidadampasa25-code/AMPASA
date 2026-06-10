@@ -29,26 +29,27 @@ export default async function ProfilePage() {
   return (
     <>
       <PresenceTracker />
-      <div className="min-h-screen bg-gray-50 p-8">
+      <div className="min-h-screen bg-[#0a0a0a] text-[#f1f1f1] p-6">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-4 mb-10">
-            <Link href="/dashboard" className="text-gray-600 hover:text-gray-800">← Volver al Dashboard</Link>
-            <h1 className="text-5xl font-bold text-gray-900">Mi Perfil</h1>
+          <div className="flex items-center gap-3 mb-6 text-sm">
+            <Link href="/dashboard" className="text-[#a1a1aa] hover:text-[#f1f1f1]">← Volver</Link>
+            <span className="text-[#2e2e2e]">/</span>
+            <h1 className="text-3xl font-semibold text-white">Mi Perfil</h1>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-lg p-10">
-            <div className="flex items-center gap-6 mb-10">
-              <div className="w-24 h-24 bg-orange-100 rounded-full flex items-center justify-center text-5xl">
+          <div className="card p-8">
+            <div className="flex items-center gap-6 mb-8">
+              <div className="w-20 h-20 bg-[#3ecf8e]/10 rounded-full flex items-center justify-center text-4xl border border-[#3ecf8e]/20">
                 👤
               </div>
               <div>
-                <h2 className="text-4xl font-bold">{profile?.full_name || 'Sin nombre'}</h2>
-                <p className="text-xl text-gray-600">{profile?.email}</p>
+                <h2 className="text-3xl font-semibold">{profile?.full_name || 'Sin nombre'}</h2>
+                <p className="text-[#a1a1aa]">{profile?.email}</p>
                 <div className="mt-2 flex gap-2">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${profile?.role === 'admin' ? 'bg-orange-100 text-orange-700' : 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`px-3 py-0.5 rounded-full text-xs font-medium ${profile?.role === 'admin' ? 'bg-[#3ecf8e] text-black' : 'bg-[#1f1f1f] text-[#a1a1aa] border border-[#2e2e2e]'}`}>
                     {profile?.role}
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${profile?.approved ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                  <span className={`px-3 py-0.5 rounded-full text-xs font-medium ${profile?.approved ? 'bg-[#3ecf8e] text-black' : 'bg-[#1f1f1f] text-[#a1a1aa] border border-[#2e2e2e]'}`}>
                     {profile?.approved ? 'Aprobado' : 'Pendiente'}
                   </span>
                 </div>
@@ -57,26 +58,26 @@ export default async function ProfilePage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
               <div>
-                <div className="text-gray-600 mb-1">ID de usuario</div>
-                <div className="font-mono break-all">{user.id}</div>
+                <div className="text-[#a1a1aa] mb-1 text-xs uppercase tracking-widest">ID de usuario</div>
+                <div className="font-mono break-all text-[#f1f1f1]">{user.id}</div>
               </div>
               <div>
-                <div className="text-gray-600 mb-1">Registrado</div>
+                <div className="text-[#a1a1aa] mb-1 text-xs uppercase tracking-widest">Registrado</div>
                 <div>{formatDate(profile?.created_at || null)}</div>
               </div>
               <div>
-                <div className="text-gray-600 mb-1">Última actividad</div>
+                <div className="text-[#a1a1aa] mb-1 text-xs uppercase tracking-widest">Última actividad</div>
                 <div>{getLastActivityText(profile?.last_seen_at || null)}</div>
               </div>
               <div>
-                <div className="text-gray-600 mb-1">Estado</div>
+                <div className="text-[#a1a1aa] mb-1 text-xs uppercase tracking-widest">Estado</div>
                 <div>{profile?.approved ? 'Acceso activo' : 'Pendiente de aprobación'}</div>
               </div>
             </div>
 
-            <div className="mt-10 pt-8 border-t text-sm text-gray-700">
-              <p>Este es tu perfil en el sistema AMPASA CALIDAD. Tu actividad se actualiza automáticamente mientras usas las secciones de las plantas.</p>
-              <p className="mt-2">Si necesitas actualizar tu nombre o información, contacta a un administrador.</p>
+            <div className="mt-8 pt-6 border-t border-[#2e2e2e] text-sm text-[#a1a1aa]">
+              Este es tu perfil en el sistema AMPASA CALIDAD. Tu actividad se actualiza automáticamente.
+              Si necesitas actualizar tu nombre o información, contacta a un administrador.
             </div>
           </div>
         </div>
