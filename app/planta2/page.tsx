@@ -15,21 +15,7 @@ export default async function Planta2Page() {
             <h1 className="text-3xl font-semibold text-white">PLANTA 2</h1>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            <Link href="/planta2/hojas-calculo" className="group block card p-8 hover:border-[#3ecf8e]/60 transition-all">
-              <div className="text-6xl mb-6">📊</div>
-              <h2 className="text-3xl font-semibold mb-2">Hojas de Cálculo</h2>
-              <p className="text-[#a1a1aa]">Formatos y documentos de cálculo</p>
-              <div className="mt-6 text-xs accent-green">ABRIR →</div>
-            </Link>
-
-            <Link href="/planta2/formatos" className="group block card p-8 hover:border-[#3ecf8e]/60 transition-all">
-              <div className="text-6xl mb-6">📄</div>
-              <h2 className="text-3xl font-semibold mb-2">Formatos</h2>
-              <p className="text-[#a1a1aa]">Documentos y formatos oficiales</p>
-              <div className="mt-6 text-xs accent-green">ABRIR →</div>
-            </Link>
-          </div>
+          <DriveBrowser folderId="1Wfa2v3_NGiYyzXLi0ZYtPCc_9f_Cccod" />
         </div>
       </div>
     </>
