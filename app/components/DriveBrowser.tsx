@@ -1101,12 +1101,17 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
                         onDragLeave={isFolder(file) ? handleFolderDragLeave : undefined}
                         onDrop={isFolder(file) ? (e) => handleFolderDrop(e, file) : undefined}
                         className={`cursor-pointer transition-colors ${isSelected ? 'selected' : ''} ${isDragOver ? 'ring-1 ring-[#3ecf8e] bg-[#1a1a1a]' : ''}`}
-                        onClick={() => handleFileClick(file)}
+                        onClick={(e) => {
+                          // Left click only selects (checkbox + highlight). Does NOT open right sidebar.
+                          if (!e.target.closest('button, input')) {
+                            toggleSelect(file.id);
+                          }
+                        }}
                         onDoubleClick={() => handleFileOrFolderDoubleClick(file)}
                         onContextMenu={(e) => {
                           e.preventDefault();
                           setContextMenu({ x: e.clientX, y: e.clientY, file });
-                          handleFileClick(file);
+                          // Right click opens context menu (rich actions). Sidebar only from menu "Detalles".
                         }}
                       >
                         <td><input type="checkbox" checked={selectedIds.has(file.id)} onChange={() => toggleSelect(file.id)} onClick={e => e.stopPropagation()} /></td>
@@ -1173,7 +1178,11 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
                   onDragOver={isFolder(file) ? (e) => handleFolderDragOver(e, file.id) : undefined}
                   onDragLeave={isFolder(file) ? handleFolderDragLeave : undefined}
                   onDrop={isFolder(file) ? (e) => handleFolderDrop(e, file) : undefined}
-                  onClick={() => handleFileClick(file)}
+                  onClick={(e) => {
+                    if (!e.target.closest('button, input')) {
+                      toggleSelect(file.id);
+                    }
+                  }}
                   onDoubleClick={() => handleFileOrFolderDoubleClick(file)}
                   onContextMenu={(e) => {
                     e.preventDefault();
@@ -1189,6 +1198,41 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
                     onClick={e => e.stopPropagation()} 
                     className="absolute top-2 right-2" 
                   />
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenMenuId(openMenuId === file.id ? null : file.id);
+                    }}
+                    className="absolute top-2 right-8 text-[#a1a1aa] hover:text-[#f1f1f1] px-1"
+                    title="Más acciones"
+                  >
+                    ⋮
+                  </button>
+
+                  {openMenuId === file.id && (
+                    <div
+                      className="absolute right-2 top-10 z-50 bg-[#161616] border border-[#2e2e2e] rounded shadow-lg py-1 text-sm min-w-[160px]"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {!isFolder(file) && (
+                        <>
+                          <button onClick={() => { handlePreview(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Previsualizar</button>
+                          <button onClick={() => { handlePrint(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Imprimir</button>
+                          <button onClick={() => { handleDownload(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Descargar</button>
+                        </>
+                      )}
+                      {isFolder(file) && (
+                        <button onClick={() => { navigateIntoFolder(file.id); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Abrir</button>
+                      )}
+                      <button onClick={() => { startRename(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Renombrar</button>
+                      <button onClick={() => { openShare(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Compartir</button>
+                      <button onClick={() => { handleMove(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Mover a...</button>
+                      <div className="h-px bg-[#2e2e2e] my-1" />
+                      <button onClick={() => { handleDelete(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f] text-red-400">Eliminar</button>
+                      <div className="h-px bg-[#2e2e2e] my-1" />
+                      <button onClick={() => { setSelectedFile(file); setOpenMenuId(null); }} className="block w-full text-left px-3 py-1 hover:bg-[#1f1f1f]">Detalles / Información</button>
+                    </div>
+                  )}
                   <div className="flex items-start gap-3 mb-3">
                     <button onClick={(e) => { e.stopPropagation(); toggleStar(file.id); }} className="text-lg leading-none self-start accent-green">
                       {starredIds.has(file.id) ? '★' : '☆'}
