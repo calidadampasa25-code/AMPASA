@@ -1,6 +1,31 @@
 import Link from 'next/link'
+import { createSupabaseServerClient } from '@/app/lib/supabase-server'
+import { redirect } from 'next/navigation'
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Check if user is already authenticated → redirect intelligently
+  const supabase = await createSupabaseServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (user) {
+    // Check profile to decide between dashboard or pending
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('approved, role')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = profile?.role === 'admin'
+    const isApproved = profile?.approved === true
+
+    if (isAdmin || isApproved) {
+      redirect('/dashboard')
+    } else {
+      redirect('/pending')
+    }
+  }
+
+  // No session → show clean landing page (encourages login)
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-[#f1f1f1] flex items-center justify-center">
       <div className="text-center px-6">

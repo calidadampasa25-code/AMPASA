@@ -15,11 +15,7 @@ export default async function DashboardPage() {
               <h1 className="text-5xl font-semibold text-white tracking-tight">AMPASA CALIDAD</h1>
               <p className="mt-2 text-[#a1a1aa]">Bienvenido, {user?.email}</p>
             </div>
-            <form action="/auth/signout" method="post">
-              <button type="submit" className="px-5 py-2 bg-[#1a1a1a] hover:bg-[#27272a] border border-[#2e2e2e] rounded-lg text-sm">
-                Cerrar sesión
-              </button>
-            </form>
+            {/* The global Navbar now handles user menu + sign out */}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">

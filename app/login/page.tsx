@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createSupabaseBrowserClient } from '@/app/lib/supabase-browser'
+import { useRouter } from 'next/navigation'
 
 const supabase = createSupabaseBrowserClient()
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
+  const [checkingSession, setCheckingSession] = useState(true)
+  const router = useRouter()
 
   const handleGoogleLogin = async () => {
     setLoading(true)
@@ -40,6 +43,35 @@ export default function LoginPage() {
       alert('Error al iniciar sesión con Microsoft: ' + error.message)
       setLoading(false)
     }
+  }
+
+  // If already logged in, redirect away from login page (fixes the "no redirect after login" issue)
+  useEffect(() => {
+    const checkAndRedirect = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (session?.user) {
+        // Let the server-side logic on /dashboard or /pending decide the final destination
+        // This prevents showing the login form to already-authenticated users
+        router.replace('/dashboard')
+        return
+      }
+      
+      setCheckingSession(false)
+    }
+
+    checkAndRedirect()
+  }, [router])
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-[#f1f1f1]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#3ecf8e] mx-auto mb-4"></div>
+          <p className="text-sm text-[#a1a1aa]">Verificando sesión...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

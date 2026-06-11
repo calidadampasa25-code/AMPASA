@@ -10,7 +10,7 @@ export default async function PendingPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-[#0a0a0a] text-[#f1f1f1]">
       <div className="max-w-md w-full text-center p-8">
         <div className="mx-auto w-24 h-24 bg-yellow-100 rounded-full flex items-center justify-center mb-8">
           <span className="text-6xl">⏳</span>
