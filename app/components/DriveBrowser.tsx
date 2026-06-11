@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from './ui/button';
 import { SupabaseSidebar, type SidebarItem } from './ui/sidebar';
 
@@ -21,17 +22,22 @@ interface DriveBrowserProps {
 }
 
 export default function DriveBrowser({ folderId }: DriveBrowserProps) {
+  const searchParams = useSearchParams();
+  const driveQuery = searchParams.get('q') || '';
+  const driveScope = (searchParams.get('scope') as 'current' | 'global') || 'current';
+
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [filteredFiles, setFilteredFiles] = useState<DriveFile[]>([]);
-  const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [selectedFile, setSelectedFile] = useState<DriveFile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchScope, setSearchScope] = useState<'current' | 'global'>('current');
   const [previewFile, setPreviewFile] = useState<DriveFile | null>(null);
   const [isGlobalResults, setIsGlobalResults] = useState(false);
   const [previewLoading, setPreviewLoading] = useState(false);
+
+  // Search now comes from the global Navbar via URL params (?q=...&scope=current|global)
+  // DriveBrowser reacts to these params for the list filtering.
 
   // Folder navigation support
   const rootFolderId = folderId;
@@ -110,19 +116,19 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     if (!silent) setLoading(true);
     setError(null);
 
-    const cacheKey = `${currentFolderId}:${searchTerm || ''}:${scope || searchScope}`;
+    const effectiveScope = scope || driveScope;
+    const cacheKey = `${currentFolderId}:${searchTerm || ''}:${effectiveScope}`;
     const winCache = (window as any).__driveListCache;
     if (winCache && winCache.key === cacheKey && Date.now() - winCache.time < 30000) {
       const cached = winCache.data;
       setFiles(cached);
       setFilteredFiles(cached);
       if (!silent) setLoading(false);
-      setIsGlobalResults(!!searchTerm && (scope || searchScope) === 'global');
+      setIsGlobalResults(!!searchTerm && effectiveScope === 'global');
       return;
     }
 
     try {
-      const effectiveScope = scope || searchScope;
       const effectiveSearch = (searchTerm ?? '').trim();
 
       const params = new URLSearchParams();
@@ -224,20 +230,20 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     openMovePicker(); // will use moveBulkIds
   };
 
-  // Debounced search - always global for better findability (like real Google Drive)
-  // Silent to avoid hiding the list
+  // React to global Navbar search (q and scope from URL)
+  // This replaces the old internal search. "Carpeta actual" now correctly uses the *current* navigated folder.
   useEffect(() => {
     const timeout = setTimeout(() => {
-      if (search.trim() === '') {
+      if (!driveQuery.trim()) {
         fetchFilesForFolder(currentFolderId, true);
       } else {
-        // Force global scope when searching so it finds files in subfolders (Formatos, etc.)
-        fetchFiles(search, 'global', { silent: true });
+        // Pass the chosen scope from the Navbar. DriveBrowser supplies the currentFolderId when scope === 'current'
+        fetchFiles(driveQuery, driveScope, { silent: true });
       }
     }, 300);
 
     return () => clearTimeout(timeout);
-  }, [search, currentFolderId]);
+  }, [driveQuery, driveScope, currentFolderId]);
 
   // Close context menu on outside click
   useEffect(() => {
@@ -540,7 +546,6 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     const name = folderName || 'Carpeta';
     setFolderPath(prev => [...prev, {id: folderIdToOpen, name}]);
     setCurrentFolderId(folderIdToOpen);
-    setSearch('');
     setIsGlobalResults(false);
     setSelectedFile(null);
     fetchFilesForFolder(folderIdToOpen);
@@ -552,7 +557,6 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     const prev = newPath[newPath.length - 1];
     setFolderPath(newPath);
     setCurrentFolderId(prev.id);
-    setSearch('');
     setIsGlobalResults(false);
     setSelectedFile(null);
     fetchFilesForFolder(prev.id);
@@ -564,7 +568,6 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     const newPath = folderPath.slice(0, index + 1);
     setFolderPath(newPath);
     setCurrentFolderId(target.id);
-    setSearch('');
     setIsGlobalResults(false);
     setSelectedFile(null);
     fetchFilesForFolder(target.id);
@@ -573,7 +576,6 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
   const goToRoot = () => {
     setFolderPath([{ id: rootFolderId, name: 'Raíz' }]);
     setCurrentFolderId(rootFolderId);
-    setSearch('');
     setIsGlobalResults(false);
     setSelectedFile(null);
     setViewFilter('all');
@@ -849,10 +851,9 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
     );
   }
 
+  // clearSearch is now handled in the global Navbar via URL params
   const clearSearch = () => {
-    setSearch('');
-    setSearchScope('current');
-    // fetch base will happen via effect
+    // No-op or can be called from elsewhere; Navbar controls the URL
   };
 
   // Supabase-style sidebar items (master list)
@@ -935,7 +936,7 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
             size="sm"
             onClick={() => { 
               (window as any).__driveListCache = null; 
-              setSearch(''); setSearchScope('current'); fetchFilesForFolder(currentFolderId); 
+              fetchFilesForFolder(currentFolderId); 
             }}
           >
             Actualizar
@@ -969,35 +970,11 @@ export default function DriveBrowser({ folderId }: DriveBrowserProps) {
         </div>
       )}
 
-      {/* Search bar (clean Supabase input) */}
-      <div className="px-4 pt-3 pb-2">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
-            placeholder={searchScope === 'current' ? "Buscar en la carpeta actual..." : "Buscar en todo el Drive (full-text)..."}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="input-supabase flex-1"
-          />
-          <div className="flex gap-1 bg-[#111] rounded-md p-0.5 self-start border border-[#2e2e2e]">
-            <button
-              onClick={() => setSearchScope('current')}
-              className={`px-3 py-1.5 text-xs rounded font-medium transition ${searchScope === 'current' ? 'bg-[#1f1f1f] text-[#3ecf8e]' : 'text-[#a1a1aa] hover:text-[#f1f1f1]'}`}
-            >
-              Carpeta actual
-            </button>
-            <button
-              onClick={() => setSearchScope('global')}
-              className={`px-3 py-1.5 text-xs rounded font-medium transition ${searchScope === 'global' ? 'bg-[#1f1f1f] text-[#3ecf8e]' : 'text-[#a1a1aa] hover:text-[#f1f1f1]'}`}
-            >
-              Todo el Drive
-            </button>
-          </div>
-        </div>
-        {(search || isGlobalResults) && (
-          <button onClick={clearSearch} className="mt-1.5 text-xs accent-green hover:underline">Limpiar búsqueda y volver</button>
-        )}
-        <p className="text-[10px] text-[#666] mt-1">Búsqueda full-text de Google Drive (nombres + contenido). Usa "Actualizar" después de cambios externos.</p>
+      {/* Search is fully controlled by the global Navbar (visible only when logged in).
+          The Navbar provides ?q= and ?scope= (Carpeta actual / Todo el Drive).
+          "Carpeta actual" now correctly respects the folder you are currently browsing. */}
+      <div className="px-4 pt-1 pb-2 text-[10px] text-[#666]">
+        Búsqueda global vía barra superior. Usa los tabs "Carpeta actual" / "Todo el Drive" para controlar el alcance.
       </div>
 
       {/* Main workspace: left Supabase sidebar + content */}
